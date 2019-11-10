@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>Hopalong attractor - Jan Marucha</title>
+
+<style>
+	#menu {
+		position: fixed;
+		left: 0px;
+		top: 0px;
+		z-index: 2;
+		color: #000;
+		background-color: #BBB;
+		font-family: sans-serif;
+		opacity:0.4;
+		width:7mm;
+		height:7mm;
+		text-align:center;
+		font-weight:bold;
+		line-height: 7mm;
+		-webkit-backface-visibility: hidden;
+	}
+	#menu:hover {
+		opacity: 1.0;
+		cursor: pointer
+	}
+	.form {
+		position: fixed;
+		padding: 3px 5px;
+		left: 0px;
+		top: 0px;
+		z-index: 1;
+		color: #000;
+		background-color: #BBB;
+		font-family: sans-serif;
+		opacity:0.4;
+		width:200px;
+		display:none;
+		cursor: default
+		-webkit-backface-visibility: hidden;
+	}
+	.form div{
+        	width: 100%;
+        	position: relative;
+        	height: 24px;
+		line-height:24px;
+	}
+	
+	.form input {
+		opacity: 0.5;
+		width: 70px;
+		text-align: right;
+		position: absolute;
+		right: 0px;
+		top: 0px;
+	}
+	.form:hover {
+		opacity: 1.0
+	}
+	body {
+		padding: 0px 0px 0px 0px;
+		margin: 0px 0px 0px 0px;
+		overflow: hidden;
+		background-color: black;
+		color: #FFF;
+		user-select: none;
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+</style>
+<meta charset="UTF-8">
+<meta name="description" content="A simple, yet pretty visualisation of Barry Martin's Hopalong Attractors.">
+<meta property="og:title" content="Hopalong orbits - Jan Marucha" />
+<meta property="og:image" content="http://users.ox.ac.uk/~magd4525/hopalong/fbimg.png" />
+<meta property="og:url" content="http://users.ox.ac.uk/~magd4525/hopalong/">
+<meta property="og:description" content="A simple, yet pretty visualisation of Barry Martin's Hopalong Attractors.">
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:height" content="600"/>
+<meta property="og:image:width" content="450"/>
+
+
+</head>
+<body> 
+
+<div id="menu" onclick="unhide()"> ? </div>
+<div class="form" id="options" onclick="dblTap(hide)">
+	<div title="Sometimes it's good to just go bigger.">Magnification: <input type="text" id="field_magn" onchange="tmagn=parseInt(this.value)" autocomplete="off" /></div>
+	<div title="If laggy, turn it down.">Speed: <input type="text" id="field_speed" value="2000" onblur="localStorage.speed=speed=tspeed" onchange="tspeed=parseInt(this.value)" autocomplete="off" /></div>
+	<div title="For bigger values, it takes more time to get bright image. For small, it looks like shit.">Smoothness: <input id="field_dim" type="text" value="20" onchange="tdim=parseInt(this.value)" autocomplete="off" /></div>
+	<hr>
+	<div>a: <input style="width: 160px" id="field_a" type="text" value="20" autocomplete="off" /></div>
+	<div>b: <input style="width: 160px" id="field_b" type="text" value="20" autocomplete="off" /></div>
+	<div>c: <input style="width: 160px" id="field_c" type="text" value="20" autocomplete="off" /></div>
+	<hr>
+	<button style="width: 48%;margin:0px;padding:0px" onclick="randomize()">Randomize</button>
+	<button style="width: 48%;margin:0px;padding:0px" onclick="restart()">Start</button>
+</div>
+
+<canvas id="graph" width="100" height="100"></canvas>
+
+
+
+<script type="text/javascript">
+
+var timedTap=null;
+var tapTimer=null;
+function dblTap(f) {
+	if (timedTap==1) {
+		clearTimeout(tapTimer);
+		timedTap=0;
+		f();
+	} else {
+		timedTap=1;
+		tapTimer=setTimeout(function() {timedTap=0},600);
+	}
+}
+
+function hide() {
+	options.style.display="none";
+	menu.style.display="block"
+}
+function unhide() {
+	options.style.display="block";
+	menu.style.display="none"
+}
+
+function drawPixel (x, y, c) {
+    var index = (x + y*w)*4;
+
+    canvasData.data[index + 0] = c.r;
+    canvasData.data[index + 1] = c.g;
+    canvasData.data[index + 2] = c.b;
+    canvasData.data[index + 3] = 255;
+}
+
+function getPixel (x,y) {
+	var index=(x+y*w)*4;
+	return {
+        	r: canvasData.data[index+0],
+        	g: canvasData.data[index+1],
+        	b: canvasData.data[index+2]
+	};
+}
+
+function mixColor(c1,c2,d) {
+	return {
+		r:(d*c1.r+c2.r)/(d+1),
+		g:(d*c1.g+c2.g)/(d+1),
+		b:(d*c1.b+c2.b)/(d+1)
+	};	
+}
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    if (h && s === undefined && v === undefined) {
+        s = h.s, v = h.v, h = h.h;
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.floor(r * 255),
+        g: Math.floor(g * 255),
+        b: Math.floor(b * 255)
+    };
+}
+
+function sign(x) {
+	if (x<0)
+		return -1;
+	else
+		return 1;
+}
+function abs(x) {
+	if (x<0)
+		return -x;
+	else
+		return x;
+}
+
+var x=0.0;
+var y=0.0;
+
+var a=	document.getElementById("field_a").value=Math.random()*10-5;
+var b=	document.getElementById("field_b").value=Math.random()*10-5;
+var c=	document.getElementById("field_c").value=Math.random()*20-10;
+var tarCol=HSVtoRGB(Math.random(),1,1);
+var magn=3,dim=20,speed=2000;
+var tmagn=3,tdim=20,tspeed=2000;
+
+if (localStorage.dim!=undefined) {
+	field_dim.value=tdim=dim=parseInt(localStorage.dim);
+}
+
+if (localStorage.speed==undefined) {
+	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+		field_speed.value=localStorage.speed=speed=tspeed=2000;
+	} else {
+		field_speed.value=localStorage.speed=speed=tspeed=6000;
+	}
+} else {
+	speed=tspeed=field_speed.value=parseInt(localStorage.speed);
+}
+	
+if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+	field_magn.value=magn=tmagn=6;
+	options.style.opacity=1;
+} else {field_magn.value=3;}
+
+if (localStorage.magn!=undefined) {
+	field_magn.value=tmagn=magn=parseInt(localStorage.magn);
+}
+
+var w=window.innerWidth, h=window.innerHeight;
+	
+graph.width=w;
+graph.height=h;
+var ctx = graph.getContext("2d");
+
+ctx.fillStyle = "#000000";
+ctx.fillRect(0, 0, w, h);
+
+var canvasData = ctx.getImageData(0, 0, w, h);
+	
+ticking = setInterval(tick, 16);
+
+function tick() {
+	ctx.putImageData(canvasData, 0, 0);
+	for (var i = 0; i < speed; ++i){
+		var xx = y - sign(x)*Math.log(abs(b*x-c));
+		var yy = a-x;
+	
+		x=xx;
+		y=yy;
+
+		if (magn*x>0-w/2 &&  magn*x<w/2 && magn*y>0-h/2 && magn*y<h/2) {
+			col=getPixel(Math.floor(magn*x+w/2.0), Math.floor(magn*y+h/2.0))
+			drawPixel(Math.floor(magn*x+w/2.0), Math.floor(magn*y+h/2.0),mixColor(col,tarCol,dim));
+		}
+	}
+}
+function randomize() {
+	document.getElementById("field_a").value=Math.random()*10-5;
+	document.getElementById("field_b").value=Math.random()*10-5;
+	document.getElementById("field_c").value=Math.random()*20-10;
+}
+function restart(){
+
+	clearInterval(ticking)
+	
+	w=window.innerWidth, h=window.innerHeight;
+	
+	graph.width=w;
+	graph.height=h;
+	ctx = graph.getContext("2d");
+
+	ctx.fillStyle = "#000000";
+	ctx.fillRect(0, 0, w, h);
+
+	a=document.getElementById("field_a").value*1;
+	b=document.getElementById("field_b").value*1;
+	c=document.getElementById("field_c").value*1;
+
+	canvasData = ctx.getImageData(0, 0, w, h);
+
+	localStorage.magn = magn = tmagn;
+	localStorage.dim = dim = tdim;
+//	speed = tspeed;
+	tarCol=HSVtoRGB(Math.random(),1,1);
+
+	x=0.0;
+	y=0.0;
+	ticking=setInterval(tick,16);
+}
+	
+</script>
+</body>
+</html>

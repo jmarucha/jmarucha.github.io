@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Langton's Ant - Jan Marucha</title>
+
+<style>
+	#menu {
+		position: fixed;
+		left: 0px;
+		top: 0px;
+		z-index: 2;
+		color: #000;
+		background-color: #BBB;
+		font-family: sans-serif;
+		opacity:0.4;
+		width:7mm;
+		height:7mm;
+		text-align:center;
+		font-weight:bold;
+		line-height: 7mm;
+		-webkit-backface-visibility: hidden;
+	}
+	#menu:hover {
+		opacity: 1.0;
+		cursor: pointer
+	}
+	.form {
+		position: fixed;
+		padding: 3px 5px;
+		left: 0px;
+		top: 0px;
+		z-index: 1;
+		color: #000;
+		background-color: #BBB;
+		font-family: sans-serif;
+		opacity:0.4;
+		width:200px;
+		display:none;
+		cursor: default;
+		-webkit-backface-visibility: hidden;
+	}
+	.form div{
+        	width: 100%;
+        	position: relative;
+        	height: 24px;
+			line-height:24px;
+	}
+	
+	.form input {
+		opacity: 0.5;
+		width: 70px;
+		text-align: right;
+		position: absolute;
+		right: 0px;
+		top: 0px;
+	}
+	.form:hover {
+		opacity: 1.0
+	}
+	body {
+		background-color: black;
+		color: #FFF;
+		user-select: none;
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+	#graph {
+		position: fixed;
+		top: 0px;
+		left: 0px;
+	}
+</style>
+<meta name="description" content="A simulator of ant's life.">
+<meta property="og:title" content="Langton's Ant - Jan Marucha" />
+<meta property="og:image" content="http://users.ox.ac.uk/~magd4525/langton/fbimg.png" />
+<meta property="og:url" content="http://users.ox.ac.uk/~magd4525/langton/">
+<meta property="og:description" content="A simulator of ant's life.">
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:height" content="600"/>
+<meta property="og:image:width" content="450"/>
+<script type="text/javascript">
+"use strict";
+var timedTap = null;
+var tapTimer = null;
+function dblTap(f) {
+	if (timedTap==1) {
+		clearTimeout(tapTimer);
+		timedTap=0;
+		f();
+	} else {
+		timedTap=1;
+		tapTimer=setTimeout(function() {timedTap=0},600);
+	}
+}
+
+function hide() {
+	options.style.display="none";
+	menu.style.display="block"
+}
+
+function unhide() {
+	options.style.display="block";
+	menu.style.display="none"
+}
+
+function drawPixel (x, y, c) {
+    var index = (x + y*w)*4;
+
+    canvasData.data[index + 0] = c.r;
+    canvasData.data[index + 1] = c.g;
+    canvasData.data[index + 2] = c.b;
+    canvasData.data[index + 3] = 255;
+}
+
+function getPixel (x,y) {
+	var index=(x+y*w)*4;
+	return {
+        	r: canvasData.data[index+0],
+        	g: canvasData.data[index+1],
+        	b: canvasData.data[index+2]
+	};
+}
+
+function palette(n) {
+	var xc = 2*n/(cdepth*colorNum-1)
+	if (xc<=1)
+		return {
+			r: Math.floor(leadColor.r*xc),
+			g: Math.floor(leadColor.g*xc),
+			b: Math.floor(leadColor.b*xc)
+		};
+	else {
+		var a1 = xc-1;
+		var a2 = 1-a1;
+		return {
+			r: Math.floor(leadColor.r*a2+255*a1),
+			g: Math.floor(leadColor.g*a2+255*a1),
+			b: Math.floor(leadColor.b*a2+255*a1),
+		};
+	}
+}
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    if (h && s === undefined && v === undefined) {
+        s = h.s, v = h.v, h = h.h;
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.floor(r * 255),
+        g: Math.floor(g * 255),
+        b: Math.floor(b * 255)
+    };
+}
+
+var w, h;
+var ctx;
+var canvasData;
+	
+
+var speed = 400;
+
+var tab;
+
+var x,y;
+var antDir = 0;
+
+var black = {
+        r: 0,
+        g: 0,
+        b: 0
+};
+var white = {
+        r: 255,
+        g: 255,
+        b: 255
+};
+var leadColor;
+var ruleset = "LR";
+var colorNum = ruleset.length;
+var cdepth = 1;
+
+function init() {
+	w=window.innerWidth;
+	h=window.innerHeight;	
+
+	graph.width=w;
+	graph.height=h;
+
+	x = Math.floor(w/2);
+	y = Math.floor(h/2);
+
+	ctx = graph.getContext("2d");
+
+	ctx.fillStyle = "#000000";
+	ctx.fillRect(0, 0, w, h);
+	canvasData = ctx.getImageData(0, 0, w, h);
+
+	tab = new Array(w*h);
+	for (var i = 0; i < w*h;++i)
+		tab[i] = 0;
+	
+	leadColor = HSVtoRGB(Math.random(),1,1);
+	
+	var ticking = setInterval(tick, 10);
+}
+
+function tick() {
+	for (var i = 0; i < speed; ++i){
+		switch (ruleset[tab[w*y+x]%colorNum]) {
+			case "L":
+				antDir = (antDir+3)%4;
+				break;
+			case "R":
+				antDir = (antDir+1)%4;
+				break;
+			case "B":
+				antDir = (antDir+2)%4;
+				break;
+		}
+		++tab[w*y+x];
+		tab[w*y+x]%=(colorNum*cdepth);
+		
+		drawPixel(x,y, palette(tab[w*y+x]));
+		switch (antDir) {
+			case 0:
+				++x;
+				if (x === w)
+					x = 0;
+				break;
+			case 1:
+				++y;
+				if (y === h)
+					y = 0;
+				break;
+			case 2:
+				--x;
+				if (x === -1)
+					x = w-1
+				break;
+			case 3:
+				--y;
+				if (y === -1)
+					y = h-1
+				break;
+		}
+	}
+	ctx.putImageData(canvasData, 0, 0);
+}
+
+function restart() {
+	ruleset = fieldRuleset.value;
+	colorNum = ruleset.length;
+	leadColor = HSVtoRGB(Math.random(),1,1);
+	
+	ctx.fillStyle = "#000000";
+	ctx.fillRect(0, 0, w, h);
+
+	canvasData = ctx.getImageData(0, 0, w, h);
+	
+	tab = new Array(w*h);
+	for (var i = 0; i < w*h;++i)
+		tab[i] = 0;
+
+	x = Math.floor(w/2);
+	y = Math.floor(h/2);
+	antDir = 0;
+	cdepth = parseInt(field_cdepth.value);
+}
+
+function randomize() {
+	new_ruleset="";
+	while (1) {
+		if (Math.random() > 0.9)
+			break;
+		else if (Math.random() > 0.5)
+			new_ruleset = new_ruleset+"L";
+		else 
+			new_ruleset = new_ruleset+"R";
+	}
+	fieldRuleset.value = new_ruleset;
+}
+	
+</script>
+
+</head>
+<body onload="init()"> 
+
+<div id="menu" onclick="unhide()"> ? </div>
+<div class="form" id="options" onclick="dblTap(hide)">
+	<div title="L to turn left, R to turn right, B to turn back.">
+		Ruleset:
+		<input type="text" id="fieldRuleset" value="LR" autocomplete="off" />
+	</div>
+	<div title="If laggy, turn it down.">
+		Speed:
+		<input type="text" id="field_speed" value="400" onblur="localStorage.speed=speed=this.speed" onchange="this.speed=parseInt(this.value)" autocomplete="off" />
+	</div>
+	<div title="Sometimes looks bad, sometimes good. Use one or numbers around 20.">
+		Color depth:
+		<input type="text" id="field_cdepth" value="1" autocomplete="off" />
+	</div>
+	<hr>
+	<button style="width: 48%;margin:0px;padding:0px" onclick="randomize()">Randomize</button>
+	<button style="width: 48%;margin:0px;padding:0px" onclick="restart()">Start</button>
+</div>
+<canvas style="image-rendering: crisp-edges;" id="graph" width="100" height="100"></canvas>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="styles.css">
+<title>Graph epidemic model</title>
+</head>
+<body>
+<div class="form">
+	<div>Inf = <input type="text" value="0.3" onchange="coef.inf=this.value" autocomplete="off" /></div>
+	<div>Die = <input type="text" value="0.1" onchange="coef.die=this.value" autocomplete="off" /></div>
+	<div>Hel = <input type="text" value="0.2" onchange="coef.res=this.value" autocomplete="off" /></div>
+	<button style="width: 100%;margin:0px;padding:0px" onclick="f(false,gen_society(4,2,100))">Reset</button>
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="./gen_society.js"></script>
+<script src="./d3_graph_gen.js"></script>
+</body>

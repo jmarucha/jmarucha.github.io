@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>L-system</title>
+</head>
+<body style="overflow: hidden; padding: 0px; margin: 0px;">
+<canvas id="can"></canvas>
+
+<script>
+
+w=window.innerWidth, h=window.innerHeight;
+	
+can.width=w;
+can.height=h;
+
+var ctx = can.getContext("2d");
+
+function gen_lsystem(complexity, synthetic) {
+	result = [];
+	type = [5, 6, 8] [Math.floor(Math.random()*3)];
+	for (i = 0; i < complexity; ++i) {
+		result.push(
+			{
+				base_length: 50*(Math.random()*0.4+0.6),
+				sc_change: Math.random()*0.4/((i+1)*(i+1))+0.55,
+				ang_change: (synthetic)?
+					2*Math.PI*Math.floor(Math.random()*type)/type
+					:
+					2*Math.PI*Math.random()
+			});	
+	}
+	return result;
+}
+
+maxDepth = 13;
+sc = 0.59;
+
+var rls = []; //recursiive loop stack
+
+function draw_line(x,y, len, ang) {
+	ctx.beginPath();
+	ctx.moveTo(x,y);
+	ctx.lineTo(x+len*Math.cos(ang),y+len*Math.sin(ang));
+	ctx.stroke();
+//	alert("2: " + (x+len*Math.cos(ang)));
+}
+
+function draw_lsystem(lsystem, x, y) {
+	rls.push(0);
+	draw_lsystem_internal(lsystem, x, y, 4, 0, 0);
+}
+//lsystem desc:
+//base_length, sc_change, ang_change,
+
+
+function draw_lsystem_internal(lsystem, x, y, sc, ang, depth) {
+	if (depth >= maxDepth)
+		return;
+	if (x<0 || y<0 || x>w || y>h)
+		return;
+	for (; rls[rls.length-1] < lsystem.length; ++rls[rls.length-1]) {
+		csystem = lsystem[rls[rls.length-1]];
+		rls.push(0);
+//		alert("1: "+(x+Math.cos(ang)*csystem.base_length*sc));
+		if (csystem.base_length*sc>2) {
+			draw_line(x,y, csystem.base_length*sc, ang+csystem.ang_change);
+			draw_lsystem_internal(
+					lsystem,
+					x + Math.cos(ang+csystem.ang_change)*csystem.base_length*sc,
+					y + Math.sin(ang+csystem.ang_change)*csystem.base_length*sc,
+					sc*csystem.sc_change,
+					ang+csystem.ang_change,
+					depth+1
+			);
+		}
+//		alert("3: "+(x + Math.cos(ang)*csystem.base_length*sc));
+		rls.pop();
+	}
+}
+	
+		
+
+//tri = [{base_length: 20, sc_change: 0.4, ang_change:0-Math.PI/3},{base_length: 50, sc_change: 0.8, ang_change:Math.PI/3}];
+//draw_lsystem(tri,300,300);
+
+var d = new Date();
+var hour = d.getHours();
+
+if (hour >= 21 || hour < 6) { //night mode
+	document.body.style.backgroundColor = "black";
+	ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+} else {
+	document.body.style.backgroundColor = "white";
+	ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+}
+
+if (window.location.href[window.location.href.length-1] == "1") {
+	draw_lsystem(gen_lsystem(3,1),w/2.0,h/2.0);
+} else {
+	draw_lsystem(gen_lsystem(3,0),w/2.0,h/2.0);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>Diatomic String Toy</title>
+        <meta charset="utf-8" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.min.js"></script>
+        <script src="dat.gui.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/2.6.4/svg.min.js"></script>
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.min.css" />
+        <style>
+        body {
+            margin: 2cm;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        #graphdiv_container {
+            position: fixed;
+            bottom: 0cm;
+            right: 0cm;
+            border: 1px solid black;
+        }
+        #chain {width: 100%; height: 100%}
+        #chain svg {width: 100%}
+        </style>
+    </head>
+    <body>
+        <h1>Diatomic chain simulation</h1>
+        <div id="graphdiv_container">
+            <div id="graphdiv" style="width:16cm; height:12cm">Dispersion relation</div>
+        </div>
+        <div id="chain"></div>
+        <script src="diatomic_chain.js"></script>
+        
+    </body>
+</html>

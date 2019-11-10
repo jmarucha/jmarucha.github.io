@@ -1,0 +1,426 @@
+<html>
+<head>
+<title>Planets? - Jan Marucha</title>
+<meta charset="utf-8" />
+<meta name="description" content="Three body problem or more." />
+<meta property="og:title" content="Planets? - Jan Marucha" />
+<meta property="og:url" content="http://users.ox.ac.uk/~magd4525/planets/">
+<meta property="og:description" content="Three body problem or more.">
+<meta property="og:image" content="http://users.ox.ac.uk/~magd4525/planets/fbimg.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:height" content="600"/>
+<meta property="og:image:width" content="450"/>
+<style>
+body {
+	background-color: #000;
+}
+#info {
+	z-index: 1;
+	margin: auto;
+	padding: 10px;
+	background: #000;
+	color: white;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	display: block;
+	font-family: Arial,sans-serif;
+	width: 30%;
+	text-align: center;
+	border: 1px white solid;
+	transition: opacity 2s;
+	user-select: none;
+	cursor: default;
+}
+#display {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+}
+</style>
+<script src="hsv_utils.js"></script>
+<script src="solver_rk4.js"></script>
+<script src="deque.js"></script>
+<script src="initial_planets.js"></script>
+<script>
+"use strict";
+var canvas;
+var info;
+
+var ctx;
+
+var display_needs_aujust = false;
+
+var dt = 0.01;
+var G = 100;
+
+var trace_length = 40;
+var trace_mode = 1;
+var pause = 0;
+
+
+var drag = {
+	x_start: 0,
+	y_start: 0,
+	x_end: 0,
+	y_end: 0,
+	display: 0
+};
+
+
+function init() { 
+	canvas = document.getElementById('display');
+	info = document.getElementById('info');
+
+	aujust_display();
+	ctx.fillStyle="#000000";
+	ctx.fillRect(-canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+
+	to_cm_frame();
+	setInterval(function() {simulate();}, 10);
+
+	draw_frame();
+	play_tutorial();
+	window.onmousedown = function(e) {
+		drag.display = 1;
+		drag.x_start = e.clientX - canvas.width/2;
+		drag.y_start = e.clientY - canvas.height/2;
+		drag.r = 2.0;
+		drag.r_int = setInterval(function() {drag.r*=1.01}, 10);
+	};
+	window.onmouseup = function(e) {
+		drag.display = 0;
+		drag.x_end = e.clientX - canvas.width/2;
+		drag.y_end = e.clientY - canvas.height/2;
+		add_planet();
+		clearInterval(drag.r_int);
+	};
+
+	window.onmousemove = function(e) {
+		drag.x_end = e.clientX - canvas.width/2;
+		drag.y_end = e.clientY - canvas.height/2;
+	}
+
+	window.onresize = function() {display_needs_aujust = true;};
+	window.onorientationchange = function() {display_needs_aujust = true;};
+	window.onkeydown = function(e) {
+		switch (e.keyCode) {
+			case 88: // Key 'x'
+				planets = []
+				break;
+			case 32: // Space
+				pause = (pause == 1) ? 0 : 1;
+				break;
+			case 67: // Key 'c'
+				to_cm_frame();
+				break;
+			case 37: // ArrowLeft
+				move_left();
+				break;
+			case 38: // ArrowUp
+				move_up();
+				break;
+			case 39: // ArrowRight
+				move_right();
+				break;
+			case 40: // ArrowDown
+				move_down();
+				break;
+			case 83: //keyS
+				if (trace_length > 1.00) {
+					trace_length /= 1.05;
+				}
+				break;
+			case 65: //keyA
+				trace_length *= 1.05;
+				break;
+			case 68: //keyD
+				trace_mode = (trace_mode+1) % 5;
+				break;
+			case 81: //keyQ
+				if (dt <= 10.24) {dt *= 2;}
+				break;
+			case 87: //keyW
+				if (dt >= 0.0005) {dt /= 2;}
+				break;
+		}
+	};
+	window.ondevicemotion = function(e) {
+	};
+	canvas.onclick = function(e) {
+	};
+}
+function simulate() {
+	if (drag.display == 0 && pause != 1) {
+		do_physics();
+	}
+}
+
+function draw_frame() {
+	requestAnimationFrame(draw_frame);
+	if (display_needs_aujust) {
+		aujust_display();
+		display_needs_aujust=false;
+	}
+	ctx.fillStyle="#000000";
+	ctx.fillRect(-canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+
+	for (var i = 0; i < planets.length; ++i) {
+
+		if (planets[i].hue === undefined) {
+			planets[i].hue = Math.random();
+		}
+		if (planets[i].r === undefined) {
+			planets[i].r = Math.pow(planets[i].m, 1.0/3);
+		}
+
+		draw_trace(planets[i]);
+
+		ctx.beginPath();
+		ctx.fillStyle="#FFFFFF"
+		ctx.arc(planets[i].x, planets[i].y, planets[i].r, 0, 2*Math.PI);
+		ctx.fill();
+	}
+	for (var i = 0; i < planets.length; ++i) {
+		draw_trace(planets[i]);
+	}
+	for (var i = 0; i < planets.length; ++i) {
+		ctx.beginPath();
+		ctx.fillStyle="#FFFFFF"
+		ctx.arc(planets[i].x, planets[i].y, planets[i].r, 0, 2*Math.PI);
+		ctx.fill();
+	}
+
+	
+	if (drag.display) {
+		ctx.beginPath();
+		ctx.strokeStyle='#FFFFFF';
+		ctx.moveTo(drag.x_start, drag.y_start);
+		ctx.lineTo(1.5*drag.x_start-0.5*drag.x_end,
+				   1.5*drag.y_start-0.5*drag.y_end);
+		ctx.stroke();
+
+		ctx.fillStyle='#FFFFFF';
+		ctx.beginPath();
+		ctx.arc(drag.x_start,drag.y_start, drag.r, 0, 2*Math.PI);
+		ctx.fill();
+
+	}
+}
+
+function aujust_display() {
+	document.body.style.margin='0px';
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	ctx = canvas.getContext('2d');
+	ctx.translate(canvas.width/2, canvas.height/2);
+}
+function gravity(o1,o2) {
+	// Newton's gravity law
+	// F = -GmM/r^3 * r
+	var dx = o1.x - o2.x;
+	var dy = o1.y - o2.y;
+	var r3 = Math.pow(dx*dx + dy*dy, 1.5); // r^3
+	var GmMr = G*o1.m*o2.m/r3;
+	return {x: -GmMr*dx, y: -GmMr*dy};
+}
+function add_planet() {
+	var dx = drag.x_start - drag.x_end;
+	var dy = drag.y_start - drag.y_end;
+	var planet = {x:drag.x_start,
+		      y:drag.y_start,
+		      v_x:dx,
+		      v_y:dy,
+		      F_x:0,
+		      F_y:0,
+		      m: Math.pow(drag.r, 3)};
+	planet.r = Math.pow(planet.m, 1.0/3);
+	planets.push(planet);
+}
+function to_cm_frame() {
+	// Go to center of mass frame
+	var x=0, y=0; //sum of m*r
+	var v_x=0, v_y=0; //sum of m*v
+
+	var m=0; //total mass
+	for (var i = 0; i < planets.length; ++i) {
+		var p = planets[i];
+		x += p.m * p.x;
+		y += p.m * p.y;
+		v_x += p.m * p.v_x;
+		v_y += p.m * p.v_y;
+		m += p.m;
+	}
+	for (var i = 0; i < planets.length; ++i) {
+		var p = planets[i];
+		p.x -= x/m;
+		p.y -= y/m;
+		p.v_x -= v_x/m;
+		p.v_y -= v_y/m;
+		if (planets[i].trace) {
+			for (var j = 0; j < planets[i].trace.length; ++j) {
+				planets[i].trace.get(j).x-= x/m;
+				planets[i].trace.get(j).y-= y/m;
+			}
+		}
+	}
+}
+function collapse() {  // collide
+	for (var i = 0; i < planets.length; ++i) {
+		for (var j = i+1; j < planets.length; ++j) {
+			var p1 = planets[i];
+			var p2 = planets[j];
+			var dx = Math.abs(p1.x-p2.x);
+			var dy = Math.abs(p1.y-p2.y);
+			var r = p1.r + p2.r;
+			if (dx+dy < 1.5*r) { // fast estimate 
+				var d = Math.sqrt(dx*dx+dy*dy);
+				if (d < r) { // real collapse/collide condition
+					var m = p1.m + p2.m
+					var new_planet = {
+						m: m,
+						x: (p1.m*p1.x+p2.m*p2.x)/m,
+						y: (p1.m*p1.y+p2.m*p2.y)/m,
+						v_x: (p1.m*p1.v_x+p2.m*p2.v_x)/m,
+						v_y: (p1.m*p1.v_y+p2.m*p2.v_y)/m,
+					}
+					new_planet.r = Math.pow(new_planet.m, 1.0/3);
+					planets[i]=new_planet;
+					planets.splice(j,1);
+					--j;
+				}
+			}
+		}
+	}
+}
+
+function move_up(){
+	for (var i = 0; i < planets.length; ++i) {
+		planets[i].v_y+=5;
+	}
+}
+
+function move_down(){
+	for (var i = 0; i < planets.length; ++i) {
+		planets[i].v_y-=5;
+	}
+}
+
+function move_left(){
+	for (var i = 0; i < planets.length; ++i) {
+		planets[i].v_x+=5;
+	}
+}
+
+function move_right(){
+	for (var i = 0; i < planets.length; ++i) {
+		planets[i].v_x-=5;
+	}
+}
+
+
+function play_tutorial() {
+	var messages = [
+		"welcome to gravity simulator",
+		"add planets using <b>mouse<b>",
+		"and pause using <b>space</b>",
+		"use <b>arrows</b> to move the view",
+		"or press <b>c</b> to go to the centre of mass frame",
+		"and <b>x</b> to clear everything",
+		"increase the length of motion trails by <b>a</b>",
+		"and decrease by <b>s</b>",
+		"change their style using <b>d</d>",
+		"speed the simulation up by <b>q</b>",
+		"or slow it down using <b>w</b>",
+		"be careful",
+		"as it becomes less precise when too rapid",
+		"",
+		"you know everything",
+		"you are on your own from now"
+	];
+	function tutorial_int() {
+		if (messages.length==0) {
+			setTimeout(function(){info.style.opacity="0"},2000);
+			setTimeout(function(){info.style.display="none"},4000);
+		} else {
+			info.innerHTML = messages.shift();
+			setTimeout(tutorial_int,3000);
+		}
+	}
+	tutorial_int(messages);
+}
+function save_traces() {
+	for (var i = 0; i < planets.length; ++i) {
+		var p = planets[i];
+		if (p.trace === undefined) {
+			p.trace = new Deque();
+		}
+		while (p.trace.length > trace_length+1) {
+			p.trace.shift();
+		}
+		p.trace.push({x: p.x, y: p.y});
+		if (p.trace.length > trace_length) {
+			p.trace.shift();
+		}
+	}
+}
+function draw_trace(p) {
+	var t = p.trace;
+	var color_saturated = HSVtoRGB(p.hue,1,1);
+	if (t === undefined) {return;}
+	if (trace_mode == 0 || t.length == 0) {return;}
+	if (trace_mode == 4) {
+		draw_fast_trace(p);
+		return;
+	}
+
+	ctx.beginPath();
+	ctx.moveTo(t.get(0).x,t.get(0).y);
+	for (var i = 0; i < t.length; ++i) {
+		//LINEAR INTERPOLATION
+		//var r = color_saturated.r*i/t.length;
+		//var g = color_saturated.g*i/t.length;
+		//var b = color_saturated.b*i/t.length;
+		
+		//QUADRATIC INTERPOLATION
+		var x = 1.0*i/t.length;
+		var x2 = x*x;
+		var r = ((510-4*color_saturated.r)*x2 + (4*color_saturated.r-255)*x).toFixed();
+		var g = ((510-4*color_saturated.g)*x2 + (4*color_saturated.g-255)*x).toFixed();
+		var b = ((510-4*color_saturated.b)*x2 + (4*color_saturated.b-255)*x).toFixed();
+
+
+		if (trace_mode == 1) {
+			ctx.strokeStyle = 'rgb('+r+','+g+','+b+')';
+			ctx.lineTo(t.get(i).x,t.get(i).y);
+			ctx.stroke();
+		} else if (trace_mode == 2 || trace_mode == 3) {
+			ctx.fillStyle = 'rgb('+r+','+g+','+b+')';
+			ctx.arc(t.get(i).x,t.get(i).y,
+				(trace_mode == 3) ? p.r : p.r * x,
+				0, 2*Math.PI);
+			ctx.fill();
+		}
+		ctx.beginPath();
+		ctx.moveTo(t.get(i).x,t.get(i).y);
+	}
+}
+function draw_fast_trace(p) {
+	var t = p.trace;
+	var color = HSVtoRGB(p.hue,1,1);
+
+	ctx.strokeStyle = 'rgb('+color.r+','+color.g+','+color.b+')';
+	ctx.beginPath();
+	ctx.moveTo(t.get(0).x,t.get(0).y);
+	for (var i = 0; i < t.length; ++i) {
+			ctx.lineTo(t.get(i).x,t.get(i).y);
+	}
+	ctx.stroke();
+}
+</script>
+</head>
+<body onload="init()">
+<div id="info"></div>
+<canvas id="display"></canvas>
+</body>

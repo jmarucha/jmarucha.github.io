@@ -1,0 +1,232 @@
+<html>
+<head>
+<title>Kaleidoscopes - Jan Marucha</title>
+<meta charset="utf-8" />
+<meta name="description" content="Have fun with a fake kaleidoscope.">
+<meta property="og:title" content="Kaleidoscopes - Jan Marucha" />
+<meta property="og:image" content="http://users.ox.ac.uk/~magd4525/kaleidoscopes/fbimg.png" />
+<meta property="og:url" content="http://users.ox.ac.uk/~magd4525/kaleidoscopes/">
+<meta property="og:description" content="Patterns, patterns, patterns.">
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:height" content="600"/>
+<meta property="og:image:width" content="450"/>
+<style>
+body {
+	background-color: black;
+}
+#info {
+	z-index: 1;
+	margin: auto;
+	padding: 10px;
+	background: #000;
+	color: white;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	display: block;
+	font-family: Arial,sans-serif;
+	width: 20%;
+	text-align: center;
+	border: 1px white solid;
+	transition: opacity 2s;
+}
+#display {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+}
+</style>
+<script>
+var canvas;
+var ctx;
+var img;
+
+var v_theta = 0;
+var dv_theta = 0.002;
+var v_max = 3;
+var v_x=0, v_y=0;
+var x=0, y=0, theta=0; //image offsets
+var r; //radius of the display window
+var n=7;
+var display_needs_aujust = false;
+var ev;
+
+function init() {
+	canvas = document.getElementById('display');
+	info = document.getElementById('info');
+
+	aujust_display();
+	info.innerHTML = "Loading image list.";
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			img_list = clean_array(this.responseText.split('\n'));
+			img_name = random_entry(img_list);
+			img.src = img_name
+			info.innerHTML = "Loading "+img_name;
+	   }
+	};
+	xhttp.open("GET", "pics.txt", true);
+	xhttp.send(); 
+
+	img = new Image();
+	img.addEventListener('load', function(){
+		info.innerHTML = "Use arrows and mouse to interact.";
+		setTimeout(function(){info.style.opacity="0"},2000);
+		setTimeout(function(){info.style.display="none"},4000);
+		setInterval(move,10);
+		draw_frame();}, false);
+
+	//set up events
+	window.onmousemove = function(e) {
+		v_x = (2*e.clientX/canvas.width-1)*v_max;
+		v_y = (2*e.clientY/canvas.height-1)*v_max;
+	};
+	window.onresize = function() {display_needs_aujust = true;};
+	window.onorientationchange = function() {display_needs_aujust = true;};
+	window.onkeydown = function(e) {
+		switch (e.keyCode) {
+			case 37: //ArrowLeft
+				v_theta -= dv_theta;
+				break;
+			case 38: //ArrowUp
+				++n;
+				break;
+			case 39: //ArrowRight
+				v_theta += dv_theta;
+				break;
+			case 40: //ArrowDown
+				if (n>2) {--n;}
+				break;
+		}
+	};
+	window.ondevicemotion = function(e) {
+		if (e.accelerationIncludingGravity.x == null) {
+			return false; //walkaround for google chrome strange events
+		}
+		total_accel = Math.sqrt(e.accelerationIncludingGravity.x*e.accelerationIncludingGravity.x
+						+ e.accelerationIncludingGravity.y*e.accelerationIncludingGravity.y
+						+ e.accelerationIncludingGravity.z*e.accelerationIncludingGravity.z);
+
+		v_x = v_max*Math.asin(e.accelerationIncludingGravity.x/total_accel);  
+		v_y = v_max*Math.asin(e.accelerationIncludingGravity.y/total_accel);
+	};
+	canvas.onclick = function(e) {
+		if (e.clientX > canvas.width/3) {
+			v_theta -= dv_theta;
+		}
+		if (e.clientX < 2*canvas.width/3) {
+			v_theta += dv_theta;
+		}
+
+		if (e.clientY < canvas.height/3) {
+			++n;
+		}
+		if (e.clientY > 2*canvas.height/3 && n>2) {
+			--n;
+		}
+	}
+}
+function aujust_display() {
+	document.body.style.margin='0px';
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	ctx = canvas.getContext('2d');
+	ctx.translate(canvas.width/2, canvas.height/2);
+	r = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
+	v_max = r/200;
+}
+
+function triangle(num, out_of) {
+	ctx.save();
+	ang = 2*Math.PI/out_of
+	ctx.rotate(ang*num);
+	ctx.beginPath();
+	ctx.moveTo(0,1);
+	ctx.lineTo(0,-1);
+	ctx.lineTo(r,-1);
+	ctx.lineTo(r*Math.cos(ang),r*Math.sin(ang));
+	ctx.clip();
+	draw_img_repeated(img, x, y, theta);
+	ctx.restore();
+}
+function rev_triangle(num, out_of) {
+	ctx.save();
+	ang = 2*Math.PI/out_of
+	ctx.scale(1,-1);
+	ctx.rotate(ang*(-num-1));
+	ctx.beginPath();
+	ctx.moveTo(0,1);
+	ctx.lineTo(0,-1);
+	ctx.lineTo(r,-1);
+	ctx.lineTo(r*Math.cos(ang),r*Math.sin(ang));
+	ctx.clip();
+	draw_img_repeated(img, x, y, theta);
+	ctx.restore();
+}
+function draw_frame() {
+	requestAnimationFrame(draw_frame)
+	if (display_needs_aujust) {
+		aujust_display();
+		display_needs_aujust=false;
+	}
+	for (var i = 0; i < n; ++i) {
+		triangle(2*i, 2*n);
+
+		rev_triangle(2*i+1, 2*n);
+	}
+}
+function move() {
+	x = (x+v_x);
+	y = (y+v_y);
+	while (x>img.width) {
+		x -= img.width;
+	}
+	while (y>img.height) {
+		y -= img.height;
+	}
+	while (x<0) {
+		x += img.width;
+	}
+	while (y<0) {
+		y += img.height;
+	}
+
+	theta+=v_theta;
+	while (theta>2*Math.PI) {
+		theta -= 2*Math.PI
+	}
+	while (theta<0) {
+		theta += 2*Math.PI
+	}
+}
+function draw_img_repeated(img, off_x, off_y, rotation) {
+	ctx.save();
+	ctx.rotate(rotation);
+	ctx.translate(off_x, off_y);
+	for (var i = -2; i<= 0; ++i) {
+		for (var j = -2; j <= 0; ++j) {
+			ctx.drawImage(img, i*img.width, j*img.height);
+		}
+	}
+	ctx.restore();
+}
+function clean_array(actual) {
+	var newArray = new Array();
+	for (var i = 0; i < actual.length; i++) {
+		if (actual[i] && actual[i][0]!='#') {
+			newArray.push(actual[i]);
+		}
+  	}
+	return newArray;
+}
+function random_entry(a) {
+	return a[Math.floor(Math.random()*a.length)];
+}
+</script>
+</head>
+<body onload="init()">
+<div id="info"></div>
+<canvas id="display"></canvas>
+</body>

@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>Leath Algorithm (labyrinth version) - Jan Marucha</title>
+
+<style>
+	.form {
+		position: absolute; padding: 2px; left: 0px; top: 0px; z-index: 1; background-color: #BBB; font-family: sans-serif; opacity:0.4
+	}
+	.form input {
+		opacity: 0.5;
+		width: 70px;
+		text-align: right;
+	}
+	.form:hover {
+		opacity: 1.0
+	}
+
+</style>
+<meta charset="UTF-8">
+</head>
+<body style="padding: 0px 0px 0px 0px; margin: 0px 0px 0px 0px; overflow-y: hidden; background-color: black">
+
+<div class="form"> p = <input type="text" value="0.5" onchange="p=1-this.value" autocomplete="off" /></div>
+<canvas id="leath" width="100" height="100"></canvas>
+
+
+
+<script type="text/javascript">
+
+var canvas = document.getElementById("leath");
+{
+
+      function init()
+      {
+        canvas.addEventListener("mousedown", getPosition, false);
+      }
+
+      function getPosition(event)
+      {
+        var x = new Number();
+        var y = new Number();
+
+        if (event.x != undefined && event.y != undefined)
+        {
+          x = event.x;
+          y = event.y;
+        }
+        else // Firefox method to get the position
+        {
+          x = event.clientX + document.body.scrollLeft +
+              document.documentElement.scrollLeft;
+          y = event.clientY + document.body.scrollTop +
+              document.documentElement.scrollTop;
+        }
+
+        x -= canvas.offsetLeft;
+        y -= canvas.offsetTop;
+		
+		//alert(stack);
+		stack.push((y*w+x));
+		tab[y*w+x]=1;
+		if (time.length)
+			time.push(time[time.length-1]);
+		else
+			time.push(1);
+        //alert("x: " + x + "  y: " + y);
+      }
+      document.addEventListener("DOMContentLoaded", init, false);
+
+}
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    if (h && s === undefined && v === undefined) {
+        s = h.s, v = h.v, h = h.h;
+    }
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.floor(r * 255),
+        g: Math.floor(g * 255),
+        b: Math.floor(b * 255)
+    };
+}
+var w=window.innerWidth, h=window.innerHeight;
+if (w%2)
+	--w;
+if (h%2)
+	--h;
+	
+leath.width=w;
+leath.height=h
+var ctx = canvas.getContext("2d");
+var canvasData = ctx.getImageData(0, 0, w, h);
+
+ctx.fillStyle = "#FF0000";
+
+var stack = new Array();
+var tab = new Array();
+var time = new Array();
+var t=1;
+var p=0.500;
+for (i=0; i < w*h; i++) {
+   tab.push(-1);
+}
+//alert(tab.toString());
+
+//stack.push(w*(h/2)+w/2);
+//time.push(0);
+
+function tick() {
+ctx.putImageData(canvasData, 0, 0);
+var t0 = 0;
+var pos_stack=0;
+var pos_time=0;
+while (stack.length!=0) {
+	var x = stack[pos_stack++];
+	t = time[pos_time++];
+	var c = HSVtoRGB((t%1000)*0.001,0.8,1);
+	//CANVAS: im.putpixel((x%w,x/w),tuple(newcolor))
+	//alert(c.r+" "+c.g+" "+c.b);
+	//alert(t+" "+time);
+    canvasData.data[4*x + 0] = c.r;
+    canvasData.data[4*x + 1] = c.g;
+    canvasData.data[4*x + 2] = c.b;
+    canvasData.data[4*x + 3] = 255;
+	
+	
+	//
+	//alert();
+    if (x%w!=0 && tab[x-1]==-1){
+        if (Math.random()>p){
+            stack.push(x-1);
+            time.push(t+1);
+            tab[x-1]=1;
+		}
+    }    else {
+            tab[x-1]=0;
+    }
+	if (x%w!=w-1 && tab[x+1]==-1) {
+        if (Math.random()>p){
+            stack.push(x+1);
+            time.push(t+1);
+            tab[x+1]=1;
+		}
+    }   else {
+            tab[x+1]=0;
+	}
+    if (x/w!=0 && tab[x-w]==-1) {
+        if (Math.random()>p) {
+            stack.push(x-w);
+            time.push(t+1);
+            tab[x-w]=1;
+		}
+    }   else {
+            tab[x-w]=0;
+	}
+    if (x/w!=h-1 && tab[x+w]==-1) {
+        if (Math.random()>p) {
+            stack.push(x+w);
+            time.push(t+1);
+            tab[x+w]=1;
+		}
+    }   else {
+            tab[x+w]=0;
+	}
+		if (time[pos_time]!=time[0]) {
+		//alert (time);
+		time.splice(0,pos_time);
+		//alert (time);
+		stack.splice(0,pos_stack);
+		
+		
+		ctx.putImageData(canvasData, 0, 0);
+		return;
+	}
+}
+}
+
+setInterval(tick, 20);
+
+</script>
+</body>
+</html>

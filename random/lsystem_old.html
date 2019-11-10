@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>L-system</title>
+</head>
+<body>
+<canvas height="600px" width="800px" id="can"></canvas>
+
+<script>
+var ctx = can.getContext("2d");
+
+maxDepth = 16;
+sc = 0.59;
+function a(scale,ang,x,y, depth) {
+	if (depth>=maxDepth)
+		return;
+	ctx.beginPath();
+	ctx.moveTo(x,y);
+	len = 46*scale;
+	dx=len*Math.cos(ang);
+	dy=len*Math.sin(ang);
+
+
+	ctx.lineTo(x+dx,y+dy);
+	ctx.stroke();
+
+	ctx.strokeStyle="red";
+	a(sc*scale, Math.PI/4.0+ang,x+dx,y+dy,depth+1);
+	ctx.strokeStyle="green";
+	len = 46*scale;
+	dx=len*Math.cos(ang);
+	dy=len*Math.sin(ang);
+	a(sc*scale,-Math.PI/4.0+ang,x+dx,y+dy,depth+1);
+}
+
+a(6,-Math.PI/2.0,400,600,0);
+</script>
+
+</body>
+</html>

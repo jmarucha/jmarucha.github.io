@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+</html>
+<html>
+<head>
+<title>Planets? - Jan Marucha</title>
+<meta charset="utf-8" />
+<meta name="description" content="Three body problem or more." />
+<meta property="og:title" content="Planets? - Jan Marucha" />
+<meta property="og:url" content="http://users.ox.ac.uk/~magd4525/planets/">
+<meta property="og:description" content="Three body problem or more.">
+<meta property="og:image" content="http://users.ox.ac.uk/~magd4525/planets/fbimg.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:height" content="600"/>
+<meta property="og:image:width" content="450"/>
+<style>
+body {
+	background-color: #000;
+}
+#info {
+	z-index: 1;
+	margin: auto;
+	padding: 10px;
+	background: #000;
+	color: white;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	display: block;
+	font-family: Arial,sans-serif;
+	width: 30%;
+	text-align: center;
+	border: 1px white solid;
+	transition: opacity 2s;
+	user-select: none;
+	cursor: default;
+}
+#display {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+}
+</style>
+<script>
+"use strict";
+var canvas;
+var info;
+
+var ctx;
+
+var display_needs_aujust = false;
+var t = 0;
+
+function init() { 
+	canvas = document.getElementById('display');
+	info = document.getElementById('info');
+
+	aujustDisplay();
+	ctx.fillStyle="#000000";
+	ctx.fillRect(-canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+
+	drawFrame();
+	playTutorial();
+	window.onmousedown = function(e) {
+	};
+	window.onmouseup = function(e) {
+	};
+
+	window.onmousemove = function(e) {
+	};
+
+	window.onresize = function() {display_needs_aujust = true;};
+	window.onorientationchange = function() {display_needs_aujust = true;};
+	window.onkeydown = function(e) {
+		switch (e.keyCode) {
+		}
+	};
+	window.ondevicemotion = function(e) {
+	};
+	canvas.onclick = function(e) {
+	};
+}
+
+function aujustDisplay() {
+	document.body.style.margin='0px';
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	ctx = canvas.getContext('2d');
+	ctx.translate(canvas.width/2, canvas.height*0.64);
+}
+
+function drawFrame() {
+	requestAnimationFrame(drawFrame);
+	if (display_needs_aujust) {aujustDisplay();}
+
+	ctx.fillStyle="#000000";
+	ctx.fillRect(-canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+
+	ctx.beginPath();
+	ctx.strokeStyle = "rgba(255,255,255, 0.04)";
+
+	var r = 400;
+	var triangles = [[]];
+	t += 0.1
+	for (var i = 0; i < 3; ++i) {
+		triangles[0].push({x: r*Math.sin(2*Math.PI*i/3), y: -r*Math.cos(2*Math.PI*i/3)})
+	}
+
+	for (var i = 0; i < 7; ++i) {
+		triangles.map(drawTriangle);
+		triangles = triangles.reduce(function(s,x) {return s.concat(splitTriangle(x))},[]);
+	}
+	triangles.map(drawTriangle);
+}
+
+
+function centerOfMass() {
+	var args = Array.prototype.slice.call(arguments);
+
+	return {
+		x: args.reduce(function(s, p) {return s+p.x}, 0)/args.length,
+		y: args.reduce(function(s, p) {return s+p.y}, 0)/args.length,
+	}
+};
+
+function splitTriangle(triangle) {
+	var new_point = centerOfMass(triangle[0],triangle[1],triangle[2]);
+	triangle[0].x*=(1+0.05*Math.sin(t));
+	triangle[2].y*=(1+0.02*Math.sin(7*t/8));
+	return [
+		[new_point,triangle[1],triangle[2]],
+		[triangle[0],new_point,triangle[2]],
+		[triangle[0],triangle[1],new_point],
+	]
+}
+
+function drawTriangle(triangle) {
+	ctx.beginPath();
+	ctx.moveTo(triangle[0].x,triangle[0].y);
+	ctx.lineTo(triangle[1].x,triangle[1].y);
+	ctx.lineTo(triangle[2].x,triangle[2].y);
+	ctx.lineTo(triangle[0].x,triangle[0].y);
+	ctx.stroke();
+}
+
+function playTutorial() {
+	var messages = [
+		"not funny at all"
+	];
+	function tutorialInt() {
+		if (messages.length==0) {
+			setTimeout(function(){info.style.opacity="0"},2000);
+			setTimeout(function(){info.style.display="none"},4000);
+		} else {
+			info.innerHTML = messages.shift();
+			setTimeout(tutorialInt,3000);
+		}
+	}
+	tutorialInt(messages);
+}
+</script>
+</head>
+<body onload="init()">
+<div id="info"></div>
+<canvas id="display"></canvas>
+</body>
+</html>

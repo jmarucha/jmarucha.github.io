@@ -1,0 +1,19 @@
+#own content - photos
+magd.jpg
+stained_glass.jpg
+tree.jpg
+flower.jpg
+food.jpg
+cables.jpg
+
+#own content abstract
+pixels.jpg
+wool.jpg
+
+#from wiki commons
+crystals.jpg
+reykjavik.jpg
+stary_night.jpg
+new_york.jpg
+
+

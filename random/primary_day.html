@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Is my prime day today?</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="/resources/demos/style.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script>
+  var _MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function dateDiffInDays(a, b) {
+  var utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  var utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
+  return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+}
+  var primes, d;
+  function generatePrimes(upTo) {
+	var set = new Array();
+	for (var i = 2; i <= upTo; ++i) {
+		var isPrime = true;
+		for (var p of set) {
+			if (i % p == 0) {
+				isPrime = false;
+				break;
+			}
+		}
+		if (isPrime)
+			set.push(i);
+	}
+	return set;
+  }
+  function primeIndex(n) {
+	if (n<=1) return 0;
+	for (var i = 0; i < primes.length-1; ++i) {
+		if (primes[i]<=n && primes[i+1] > n)
+			return i;
+	}
+  };
+  $( function() {
+    primes = generatePrimes(100*365);
+    $( "#datepicker" ).click(function() {
+		var birthday = new Date(
+			$("#year").val(),
+			$("#month").val(),
+			$("#day").val(),
+		);
+		var today = new Date();
+		d = dateDiffInDays(birthday, today);
+		console.log(d);
+		if (primes[primeIndex(d)] == d) {
+			$("#yeah").show();
+			$("#nah").hide();
+		} else {
+			$("#nah").show();
+			$("#yeah").hide();
+		}
+		$("#num").text(primes[primeIndex(d)+1] - d);
+		$("#future").show();
+		$("#d").text(d);
+		$("#life").show();
+
+        $("#primedays_num").text(primeIndex(d)+1);
+		$("#primedays").show();
+        
+	});
+  } );
+  </script>
+</head>
+<body style="margin: 1cm; font-family: Arial, sans">
+	<p>Your birthday:
+		<input placeholder="day" id="day">
+		<select placeholder="month" id="month">
+			<option value="0">January</option>
+			<option value="1">February</option>
+			<option value="2">March</option>
+			<option value="3">April</option>
+			<option value="4">May</option>
+			<option value="5">June</option>
+			<option value="6">July</option>
+			<option value="7">August</option>
+			<option value="8">September</option>
+			<option value="9">October</option>
+			<option value="10">November</option>
+			<option value="11">December</option>
+		</select>
+		<input placeholder="year" id="year">
+		<input type="button" id="datepicker" value="Is my prime day today?"></p>
+	<h1 style="display: none" id="yeah"> Today is your prime day! Let's celebrate!</h1>
+	<h2 style="display: none" id="nah"> Not today mate :( </h2>
+	<p style="display: none" id="life"> You have lived for <span id="d"></span> days.</p>
+	<p style="display: none" id="future"> Your next prime day will be in <span id="num"></span> days.</p>
+	<p style="display: none" id="primedays"> Your enjoyed <span id="primedays_num"></span> prime days in your life.</p>
+</body>
+</html>
