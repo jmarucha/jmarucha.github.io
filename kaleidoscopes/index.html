@@ -127,8 +127,8 @@ function init() {
 			.catch(console.error);
 		} 
 	}
-	if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
-		window.addEventListener('deviceorientation', tiltHandler);
+	if (navigator.userAgent.indexOf("Safari") == -1 || navigator.userAgent.indexOf("Chrome") != -1) { // non-safari browsers
+    	window.addEventListener('deviceorientation', tiltHandler);
 		first_click = false; // no need to ask for perms
 	}
 	canvas.onclick = function(e) {
