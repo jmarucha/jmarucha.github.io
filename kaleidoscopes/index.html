@@ -50,7 +50,6 @@ var x=0, y=0, theta=0; //image offsets
 var r; //radius of the display window
 var n=7;
 var display_needs_aujust = false;
-var first_click = true;
 var ev;
 
 function init() {
@@ -102,8 +101,7 @@ function init() {
 				break;
 		}
 	};
-
-	tiltHandler = function(e) {
+	window.ondevicemotion = function(e) {
 		if (e.accelerationIncludingGravity.x == null) {
 			return false; //walkaround for google chrome strange events
 		}
@@ -114,28 +112,7 @@ function init() {
 		v_x = v_max*Math.asin(e.accelerationIncludingGravity.x/total_accel);  
 		v_y = v_max*Math.asin(e.accelerationIncludingGravity.y/total_accel);
 	};
-
-	function onFirstClick() {
-		// feature detect
-		if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-		DeviceOrientationEvent.requestPermission()
-			.then(permissionState => {
-			if (permissionState === 'granted') {
-				window.addEventListener('deviceorientation', tiltHandler);
-			}
-			})
-			.catch(console.error);
-		} 
-	}
-	if (navigator.userAgent.indexOf("Safari") == -1 || navigator.userAgent.indexOf("Chrome") != -1) { // non-safari browsers
-    	window.addEventListener('deviceorientation', tiltHandler);
-		first_click = false; // no need to ask for perms
-	}
 	canvas.onclick = function(e) {
-		if (first_click) {
-			onFirstClick()
-			first_click = false;
-		}
 		if (e.clientX > canvas.width/3) {
 			v_theta -= dv_theta;
 		}
