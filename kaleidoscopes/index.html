@@ -125,9 +125,11 @@ function init() {
 			}
 			})
 			.catch(console.error);
-		} else {
-			window.addEventListener('deviceorientation', tiltHandler);
-		}
+		} 
+	}
+	if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+		window.addEventListener('deviceorientation', tiltHandler);
+		first_click = false; // no need to ask for perms
 	}
 	canvas.onclick = function(e) {
 		if (first_click) {
