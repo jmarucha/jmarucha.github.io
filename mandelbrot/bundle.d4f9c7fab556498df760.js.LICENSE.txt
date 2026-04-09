@@ -1,3 +1,11 @@
 /* @license twgl.js 7.0.0 Copyright (c) 2015, Gregg Tavares All Rights Reserved.
 Available via the MIT license.
 see: http://github.com/greggman/twgl.js for details */
+
+/**
+ * lil-gui
+ * https://lil-gui.georgealways.com
+ * @version 0.21.0
+ * @author George Michael Brower
+ * @license MIT
+ */
